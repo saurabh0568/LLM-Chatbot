@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: llm-chatbot-backend
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    numInstances: 1
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////data/app.db
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: LLM_API_KEYS
+        sync: false
+      - key: LLM_MODEL
+        value: gemini/gemini-flash-lite-latest
+      - key: LLM_MODELS
+        value: gemini/gemini-flash-lite-latest,groq/openai/gpt-oss-120b
+      - key: ENABLE_FAILURE_SIMULATION
+        value: "true"
+      - key: DEFAULT_SYSTEM_PROMPT
+        value: You are a helpful assistant.
+      - key: LLM_MOCK_RESPONSE
+        value: ""
+      - key: LLM_MAX_TOKENS
+        value: "1024"
+      - key: LLM_REQUEST_TIMEOUT
+        value: "30"
+      - key: CACHE_TTL_SECONDS
+        value: "3600"

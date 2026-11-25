@@ -6,11 +6,11 @@ Full-stack React + FastAPI chatbot with multi-turn SQLite history, LiteLLM respo
 
 | Tier | URL | Status |
 | --- | --- | --- |
-| Frontend | _not deployed in this pass_ | Add the public frontend URL here after deployment |
-| Backend | _not deployed in this pass_ | Add the public backend URL here after deployment |
-| GitHub | _not created in this pass_ | Add the public repository URL here after pushing |
+| Frontend | _pending Vercel deployment_ | Import the repo into Vercel with root directory `frontend`; `frontend/vercel.json` supplies the Vite build settings |
+| Backend | _pending Render deployment_ | Deploy from `render.yaml`; set `LLM_API_KEYS` and `ALLOWED_ORIGINS` in the Render dashboard |
+| GitHub | https://github.com/saurabh0568/LLM-Chatbot.git | Pushed to `main` |
 
-Set `VITE_API_URL` on the deployed frontend to the deployed backend base URL, and set `ALLOWED_ORIGINS`, `DATABASE_URL`, `LLM_API_KEYS`, `LLM_MODELS`, and `ENABLE_FAILURE_SIMULATION=true` on the deployed backend. Use a persistent disk for `DATABASE_URL`, for example `sqlite:////data/app.db`.
+Deployment configs are included: `render.yaml` defines the Docker web service, `/data` persistent disk, `/health` check, and non-secret environment values; `frontend/vercel.json` defines the Vite build. Deploy the backend first, set `ALLOWED_ORIGINS=http://localhost:3000` temporarily, then deploy the frontend with `VITE_API_URL` set to the Render backend base URL, then update Render `ALLOWED_ORIGINS` to the Vercel frontend URL and redeploy. Keep `DATABASE_URL=sqlite:////data/app.db` so session history survives backend restarts.
 
 ## 2. Run locally: with Docker and without
 
@@ -213,5 +213,5 @@ make test
 - **Session-scoped system prompt**: `system_prompt` is persisted per session and shown in an optional UI field; later requests reuse it, and history never leaks it.
 - **New session button**: lets a reviewer start a fresh session without reloading the page; page load already creates a new session.
 - **Mock provider mode**: `LLM_MOCK_RESPONSE` makes local verification and automated tests deterministic without real keys, while production still uses real LiteLLM provider calls.
-- **Non-Docker `make up` / `make down`**: keeps the requested developer entry points usable now that Docker is intentionally deferred.
+- **Docker and non-Docker entry points**: `make up` / `make down` run the full stack with Docker, while `make dev-up` / `make dev-down` keep local Python and Node servers usable.
 - **JSON-only error contract**: custom exception handlers return `{"detail": ...}` for HTTP and unexpected errors, so the UI never receives an HTML error page.
