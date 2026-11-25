@@ -6,11 +6,11 @@ Full-stack React + FastAPI chatbot with multi-turn SQLite history, LiteLLM respo
 
 | Tier | URL | Status |
 | --- | --- | --- |
-| Frontend | _pending Vercel deployment_ | Import the repo into Vercel with root directory `frontend`; `frontend/vercel.json` supplies the Vite build settings |
-| Backend | _pending Render deployment_ | Deploy from `render.yaml`; set `LLM_API_KEYS` and `ALLOWED_ORIGINS` in the Render dashboard |
+| Frontend | https://llm-chatbot-cyan.vercel.app | Live Vercel production deployment |
+| Backend | https://llm-chatbot-backend-93ky.onrender.com | Live Render Docker service with `/health`, `/chat`, and history API |
 | GitHub | https://github.com/saurabh0568/LLM-Chatbot.git | Pushed to `main` |
 
-Deployment configs are included: `render.yaml` defines the Docker web service, `/data` persistent disk, `/health` check, and non-secret environment values; `frontend/vercel.json` defines the Vite build. Deploy the backend first, set `ALLOWED_ORIGINS=http://localhost:3000` temporarily, then deploy the frontend with `VITE_API_URL` set to the Render backend base URL, then update Render `ALLOWED_ORIGINS` to the Vercel frontend URL and redeploy. Keep `DATABASE_URL=sqlite:////data/app.db` so session history survives backend restarts.
+Deployment configs are included: `render.yaml` defines the Docker web service, `/health` check, and non-secret environment values; `frontend/vercel.json` defines the Vite build. `VITE_API_URL` is set to the Render backend base URL and `ALLOWED_ORIGINS` is set to the Vercel frontend URL. The live backend uses Render's free tier, so its SQLite file is ephemeral and chat history resets on restart/redeploy; add a paid `/data` disk later if history must survive redeploys.
 
 ## 2. Run locally: with Docker and without
 

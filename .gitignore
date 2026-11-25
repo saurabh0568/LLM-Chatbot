@@ -4,6 +4,7 @@
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+.vercel/
 __pycache__/
 *.py[cod]
 .pytest_cache/
