@@ -32,11 +32,10 @@ Submission note: the assignment form also requires a 2–3 minute narrated demo 
 ### With Docker
 
 ```bash
-cp .env.example .env
 make up
 ```
 
-`make up` builds and runs both services through Docker Compose. The backend container stores SQLite at `/data/app.db` inside the named volume `chatbot-data`; the frontend container serves the production Vite build with Nginx and receives `VITE_API_URL` as a build argument.
+`make up` builds and runs both services through Docker Compose. If `.env` is missing it is created from `.env.example` automatically. The example contains placeholder keys and a deterministic mock reply, so the full stack works without provider credentials; replace the keys and clear `LLM_MOCK_RESPONSE` for real inference. The backend container stores SQLite at `/data/app.db` inside the named volume `chatbot-data`; the frontend container serves the production Vite build with Nginx and receives `VITE_API_URL` as a build argument.
 
 Stop and inspect with:
 
@@ -96,17 +95,18 @@ npm --prefix frontend run dev
 | `LLM_MAX_TOKENS` | backend | Optional completion token cap. |
 | `LLM_REQUEST_TIMEOUT` | backend | Optional provider request timeout in seconds. |
 | `CACHE_TTL_SECONDS` | backend | Optional in-memory cache TTL. |
+| `BACKEND_PORT` | dev script | Local uvicorn port used by `make dev-up`. |
+| `FRONTEND_PORT` | dev script | Local Vite port used by `make dev-up`. |
+
+Every variable above is present with a placeholder value in `.env.example`; real keys belong only in the ignored `.env` file or in deployment secret settings, never in the repository.
 
 ### No real API keys yet
 
-Put a deterministic mock reply in `.env` to exercise the whole stack without network calls:
+`.env.example` already uses dummy keys and a deterministic mock reply, so the whole stack works without network calls. Replace `LLM_API_KEYS` with real provider keys and clear this setting when live inference is available:
 
 ```env
-LLM_MOCK_RESPONSE=Local mock answer for verification
-LLM_API_KEYS=dummy_key_1,dummy_key_2
+LLM_MOCK_RESPONSE=
 ```
-
-Leave `LLM_MOCK_RESPONSE` empty when real provider keys are available.
 
 ### Useful commands
 
@@ -135,7 +135,7 @@ The UI implements `chat-input`, `send-button`, `assistant-message`, `meta-source
 - `LLM_API_KEYS` is parsed in order into `key_1`, `key_2`, ...; key values are never returned by the API.
 - `LLM_MODELS` optionally maps one model per key; if omitted, `LLM_MODEL` is used for every key.
 - Each `/chat` request calls `litellm.completion(...)` with the current key's model.
-- Transient timeouts, 429, quota, and 5xx errors are caught, logged by key id, and retried once before failing over.
+- Transient timeouts, connection errors, 429/quota/rate-limit errors, and 5xx errors are caught, logged by key id, and retried once before failing over.
 - `fallback_attempts` counts the keys that failed before the answering key.
 - If every key fails, the backend returns exactly `503 {"detail":"all providers unavailable"}` and writes nothing to session history.
 - With `ENABLE_FAILURE_SIMULATION=true`, the `X-Simulate-Failure` header forces chosen keys to fail for one request only. It supports `key_1=429`, `key_1=429,key_2=500`, and `*=429`; simulated requests still call the real provider for the surviving key.
@@ -238,7 +238,7 @@ curl "$BACKEND_URL/sessions/verify-1/messages"
 
 Each assistant message includes its own `input_tokens` and `output_tokens`; the UI renders them under every assistant reply as `meta-input-tokens` and `meta-output-tokens`.
 
-Backend tests cover health, validation, history, cache hits, different-message cache separation, simulated failover, all-providers-failed, and session-scoped system prompts:
+Backend tests cover health, validation, history, cache hits, different-message cache separation, simulated failover, real 429/5xx/quota fallback, all-providers-failed, and session-scoped system prompts:
 
 ```bash
 make test
@@ -246,8 +246,8 @@ make test
 
 ## 5. Setup Used: your editor and AI tools
 
-- Editor/CLI: opencode
-- AI assistant: opencode/big-pickle
+- Editor/CLI: Visual Studio Code (VS Code)
+- AI assistant: ChatGPT – Used for understanding requirements, debugging, code assistance, and implementation guidance. Opencode – used for code suggestions and development assistance.
 - Backend: Python 3.11 in Docker, Python 3.13 locally, FastAPI, LiteLLM, SQLite, pytest
 - Frontend: Node.js 22+, React 19, TypeScript, Vite 7, Nginx
 - Deployment: Vercel for the frontend, Render for the Docker backend

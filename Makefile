@@ -11,6 +11,7 @@ frontend:
 	npm --prefix frontend run dev
 
 up:
+	python -c "from pathlib import Path; env = Path('.env'); env.write_text(Path('.env.example').read_text(encoding='utf-8'), encoding='utf-8') if not env.exists() else None"
 	docker compose up --build -d
 
 down:

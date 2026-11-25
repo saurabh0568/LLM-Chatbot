@@ -1,5 +1,51 @@
 from __future__ import annotations
 
+import pytest
+
+
+class ProviderError(Exception):
+    def __init__(self, message: str, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+@pytest.mark.parametrize(
+    ("message", "status_code"),
+    [
+        ("rate limit exceeded", 429),
+        ("service unavailable", 503),
+        ("insufficient_quota for project", None),
+    ],
+)
+def test_transient_provider_errors_fall_back_to_next_key(client, monkeypatch, message, status_code):
+    from app import llm as llm_module
+
+    real_completion = llm_module.litellm.completion
+    calls: list[str] = []
+
+    def flaky_completion(**kwargs):
+        calls.append(str(kwargs.get("api_key")))
+        if len(calls) <= 2:
+            raise ProviderError(message, status_code)
+        return real_completion(**kwargs)
+
+    monkeypatch.setattr(llm_module.litellm, "completion", flaky_completion)
+    monkeypatch.setattr(llm_module.time, "sleep", lambda _seconds: None)
+
+    response = client.post(
+        "/chat",
+        json={
+            "session_id": f"fallback-{status_code or 'quota'}",
+            "message": f"Transient {message} test",
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["metadata"]["key_id"] == "key_2"
+    assert body["metadata"]["fallback_attempts"] == 1
+    assert calls[:2] == [calls[0], calls[0]]
+    assert calls[2] != calls[0]
+
 
 def test_health(client):
     response = client.get("/health")

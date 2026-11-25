@@ -40,7 +40,7 @@ class Settings:
     cache_ttl_seconds: int
 
     def __post_init__(self) -> None:
-        if self.models and len(self.models) != len(self.api_keys):
+        if self.api_keys and self.models and len(self.models) != len(self.api_keys):
             raise ValueError("LLM_MODELS must contain one model per LLM_API_KEYS entry")
 
     @classmethod

@@ -18,10 +18,13 @@ SIMULATED_STATUSES = {"429", "500", "502", "503"}
 ALL_PROVIDERS_UNAVAILABLE = "all providers unavailable"
 TRANSIENT_EXCEPTIONS = (
     litellm.Timeout,
+    litellm.APIConnectionError,
     litellm.RateLimitError,
     litellm.InternalServerError,
     litellm.ServiceUnavailableError,
+    litellm.BudgetExceededError,
 )
+QUOTA_MARKERS = ("quota", "budget", "insufficient_quota", "rate limit", "too many requests")
 
 
 class ProviderUnavailable(Exception):
@@ -75,7 +78,10 @@ def _is_transient(exc: Exception) -> bool:
     if isinstance(exc, TRANSIENT_EXCEPTIONS):
         return True
     status_code = getattr(exc, "status_code", None)
-    return isinstance(status_code, int) and status_code >= 500
+    if isinstance(status_code, int) and (status_code == 429 or status_code >= 500):
+        return True
+    message = str(exc).lower()
+    return any(marker in message for marker in QUOTA_MARKERS)
 
 
 class LLMService:
