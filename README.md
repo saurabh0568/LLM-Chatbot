@@ -15,7 +15,23 @@ Repository structure:
 - `.env.example`: every environment variable with placeholder values; real secrets are never committed.
 - `README.md`: this document.
 
-## 1. Live URLs
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/saurabh0568/LLM-Chatbot.git
+cd LLM-Chatbot
+git checkout main
+```
+
+Useful follow-up commands:
+
+```bash
+git pull origin main
+git status
+git remote -v
+```
+
+## 2. Live URLs
 
 | Tier | URL | Status |
 | --- | --- | --- |
@@ -27,7 +43,7 @@ Both tiers are connected: the frontend sends `VITE_API_URL` to the Render backen
 
 Submission note: the assignment form also requires a 2–3 minute narrated demo video showing the deployed app, endpoints, cache hit, and failover.
 
-## 2. Run locally: with Docker and without
+## 3. Run locally: with Docker and without
 
 ### With Docker
 
@@ -116,17 +132,19 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run build
 ```
 
-## 3. Design decisions: key fallback, caching, SQLite session storage
+## 4. Design decisions: key fallback, caching, SQLite session storage
 
 ### API and UI contract
 
-The backend exposes the three required endpoints:
+Base URL: `http://localhost:8000` locally or `https://llm-chatbot-backend-93ky.onrender.com` when deployed. These are all backend endpoints used by this project; `/docs`, `/redoc`, and `/openapi.json` are intentionally disabled.
 
-- `GET /health` returns `{"status":"ok","keys_configured":2,"cache_enabled":true}` once the database and key pool are ready.
-- `POST /chat` accepts `session_id`, `message`, and optional `system_prompt`, and returns `session_id`, `reply`, and `metadata` with `resolution_source`, `model`, `latency_ms`, `input_tokens`, `output_tokens`, `key_id`, and `fallback_attempts`.
-- `GET /sessions/{session_id}/messages` returns oldest-first `{role, content, metadata?}` history without the system prompt.
+| Method | Endpoint | Short description | Request / response |
+| --- | --- | --- | --- |
+| `GET` | `/health` | Checks that the database and key pool are ready. | `200` with `{"status":"ok","keys_configured":2,"cache_enabled":true}`; `503 {"detail":"database unavailable"}` if SQLite is not healthy. |
+| `POST` | `/chat` | Sends the newest user message; the server rebuilds the prompt from stored session history, applies failover/caching, and saves the turn. | JSON body: `{"session_id":"...","message":"...","system_prompt":"optional"}`; optional header `X-Simulate-Failure`. `200` returns `session_id`, `reply`, and `metadata` (`resolution_source`, `model`, `latency_ms`, `input_tokens`, `output_tokens`, `key_id`, `fallback_attempts`). `422` on validation, `503 {"detail":"all providers unavailable"}` when every key fails. |
+| `GET` | `/sessions/{session_id}/messages` | Returns oldest-first `{role, content, metadata?}` chat history for a session; the system prompt is never returned. | `200` returns `session_id` and `messages`; `404 {"detail":"session not found"}` for an unknown session. |
 
-All errors are JSON with a `detail` field: validation failures are 422, every-key failure is `503 {"detail":"all providers unavailable"}`, and an unknown history session is `404 {"detail":"session not found"}`. Failed 422/503 requests are never written to history.
+The React client calls `/chat` for the composer and Quick tests. All errors are JSON with a `detail` field, so the UI never receives an HTML error page. Failed `422`/`503` requests are never written to history.
 
 The UI implements `chat-input`, `send-button`, `assistant-message`, `meta-source`, `meta-model`, `meta-latency`, `meta-input-tokens`, `meta-output-tokens`, `system-prompt-input`, and `error-message`. A new session starts on page load, and errors render as readable messages instead of a blank screen.
 
@@ -157,7 +175,7 @@ The UI implements `chat-input`, `send-button`, `assistant-message`, `meta-source
 - `GET /sessions/{session_id}/messages` returns oldest-first user/assistant history and never returns the system prompt.
 - Token counts are per request, not conversation totals.
 
-## 4. Verification: how to see failover, cache hits and per-message token usage
+## 5. Verification: how to see failover, cache hits and per-message token usage
 
 The **Quick tests** panel in the UI calls the same `/chat` endpoint as the composer:
 
@@ -244,7 +262,7 @@ Backend tests cover health, validation, history, cache hits, different-message c
 make test
 ```
 
-## 5. Setup Used: your editor and AI tools
+## 6. Setup Used: your editor and AI tools
 
 - Editor/CLI: Visual Studio Code (VS Code)
 - AI assistant: ChatGPT – Used for understanding requirements, debugging, code assistance, and implementation guidance. Opencode – used for code suggestions and development assistance.
@@ -253,7 +271,7 @@ make test
 - Deployment: Vercel for the frontend, Render for the Docker backend
 - Documentation source: the supplied assignment PDF, extracted and checked section by section
 
-## 6. Bonus features (if any): what you added beyond the requirements and why
+## 7. Bonus features (if any): what you added beyond the requirements and why
 
 - **Session-scoped system prompt**: `system_prompt` is persisted per session and shown in an optional UI field; later requests reuse it, while history never leaks it.
 - **New session button**: lets a reviewer start a fresh session without reloading the page; page load already creates a new session.
